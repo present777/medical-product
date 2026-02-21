@@ -1,0 +1,8 @@
+streamlit
+openai
+langchain-community
+langchain-huggingface
+langchain-chroma
+PyMuPDF
+streamlit-mic-recorder
+sentence-transformers
