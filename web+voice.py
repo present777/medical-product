@@ -14,7 +14,7 @@ from streamlit_mic_recorder import speech_to_text
 
 # ================= 1. 全局配置区域 =================
 
-st.set_page_config(page_title="AI 临床模拟考核系统", page_icon="🏥", layout="wide")
+st.set_page_config(page_title="医循：基于AI与医学循证逻辑的临床沟通智能训练系统", page_icon="🏥", layout="wide")
 API_KEY = st.secrets["DEEPSEEK_API_KEY"]  # 替换为api—key
 BASE_URL = "https://api.deepseek.com"
 MODEL_NAME = "deepseek-chat"
@@ -356,7 +356,7 @@ def run_evaluation(chat_history, user_diagnosis,correct_disease):
 # ================= 5. 主程序逻辑 (Main) =================
 
 def main():
-    st.title("🏥 AI 临床模拟考核系统 (OSCE)")
+    st.title("🏥 医循：基于AI与医学循证逻辑的临床沟通智能训练系统")
     # 1. 准备 RAG
     with st.spinner("正在连接教材知识库..."):
         build_or_load_knowledge_base()
