@@ -419,7 +419,7 @@ def main():
     # ================= 状态一：问诊聊天阶段 =================
     if st.session_state.status == "chatting":
 
-        st.info("💡 **问诊提示**：请按照《国家执业医师病史采集标准》。")
+        st.info("💡 **问诊提示**：请按照《国家执业医师病史采集标准》进行全面问诊。")
 
         if st.button("📝 结束问诊，我要交卷", type="primary", use_container_width=True):
             st.session_state.status = "diagnosing"
