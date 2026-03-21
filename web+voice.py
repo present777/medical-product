@@ -419,13 +419,13 @@ def main():
     # ================= 状态一：问诊聊天阶段 =================
     if st.session_state.status == "chatting":
 
-        # 侧边栏：交卷按钮
-        with st.sidebar:
-            st.markdown("💡 **提示**：请按照**《国家执业医师病史采集标准》**进行全面问诊。")
-            st.divider()
-            if st.button("📝 结束问诊并交卷", use_container_width=True):
-                st.session_state.status = "diagnosing"
-                st.rerun()  # 刷新页面进入下一阶段
+        st.info("💡 **问诊提示**：请按照《国家执业医师病史采集标准》。")
+
+        if st.button("📝 结束问诊，我要交卷", type="primary", use_container_width=True):
+            st.session_state.status = "diagnosing"
+            st.rerun()
+
+        st.divider()
 
         # 显示历史聊天记录 (隐藏系统 prompt)
         for msg in st.session_state.messages:
