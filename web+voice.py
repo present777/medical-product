@@ -154,7 +154,7 @@ def generate_patient_profile(disease_name):
         "signs": "体征平稳 / 略显疲惫 / 痛苦面容"
     })
 
-    final_prompt = f"A {age}-year-old Chinese {gender_en} patient, {current_feature['prompt']}, wearing hospital gown, professional photorealistic medical portrait, 8k resolution, cinematic lighting."
+    final_prompt = f"A highly detailed face portrait of a {age}-year-old Asian {gender_en}, {current_feature['prompt']}, wearing everyday casual clothes, professional photography, 8k resolution."
 
     # --- 调用硅基流动 API ---
     try:
