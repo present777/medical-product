@@ -180,8 +180,15 @@ def generate_patient_profile(disease_name):
         image_url = response.json()['images'][0]['url']
 
     except Exception as e:
+        error_msg = str(e)
+        if hasattr(e, 'response') and e.response is not None:
+            error_msg = e.response.text
+
+        # 在网页右下角弹出详细的错误提示！
+        st.toast(f"🚨 硅基流动报错: {error_msg}", icon="❌")
+        print(f"⚠️ 图像生成失败: {error_msg}")
+
         # 恢复成最干净的容错捕获机制
-        print(f"⚠️ 图像生成失败，启用占位图: {e}")
         image_url = f"https://dummyimage.com/400x500/cccccc/000000&text=Patient+Sim"
 
     return {
