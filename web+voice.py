@@ -11,11 +11,14 @@ import time
 import random
 import streamlit as st
 from streamlit_mic_recorder import speech_to_text
+import requests  # <--- 新增
+import json
 
 # ================= 1. 全局配置区域 =================
 
 st.set_page_config(page_title="医循：基于AI与医学循证逻辑的临床沟通智能训练系统", page_icon="🏥", layout="wide")
-API_KEY = st.secrets["DEEPSEEK_API_KEY"]  # 替换为api—key
+API_KEY = st.secrets["DEEPSEEK_API_KEY"]# 替换为api—key
+silicon_key = st.secrets["SILICON_FLOW_API_KEY"]
 BASE_URL = "https://api.deepseek.com"
 MODEL_NAME = "deepseek-chat"
 
@@ -99,6 +102,94 @@ def retrieve_evidence(query, k=10):
         print(f"检索出错: {e}")
         return f"（检索出错: {e}）"
 
+# ================= 🚀 新增功能：患者图像与体征生成引擎 =================
+def generate_patient_profile(disease_name):
+    """根据抽中的疾病，生成患者属性、体征描述，并调用硅基流动API生成图像"""
+    age = random.randint(25, 75)
+    gender_en = random.choice(["male", "female"])
+    gender_cn = "男性" if gender_en == "male" else "女性"
+
+    disease_features = {
+        # --- 呼吸系统 ---
+        "大叶性肺炎": {"prompt": "feverish flush on cheeks, coughing, slightly rapid breathing, tired look", "signs": "高热面容 / 呼吸稍促 / 疲乏"},
+        "慢性阻塞性肺疾病 COPD": {"prompt": "barrel chest visible under gown, pursed-lip breathing, slightly cyanotic lips, older patient", "signs": "桶状胸 / 唇甲微发绀 / 喘息"},
+        "支气管哮喘": {"prompt": "sitting upright, anxious expression, chest tight, slight wheezing posture", "signs": "端坐呼吸 / 神情焦虑 / 喘憋"},
+        "支气管扩张": {"prompt": "pale, holding a tissue, looking exhausted from coughing", "signs": "面色苍白 / 咯血后虚弱"},
+        "肺血栓栓塞症": {"prompt": "sudden severe chest pain expression, clutching chest, extremely anxious, pale, sweating", "signs": "极度焦虑 / 呼吸急促 / 大汗"},
+        "自发性气胸": {"prompt": "holding one side of the chest, sharp pain expression, difficult breathing", "signs": "捂一侧胸口 / 呼吸困难 / 表情痛苦"},
+        "呼吸衰竭": {"prompt": "cyanosis on lips and fingertips, confused or lethargic expression, weak", "signs": "明显发绀 / 神志淡漠 / 极度虚弱"},
+        "肺结核": {"prompt": "very thin, pale with slight malar flush (red cheeks), tired, sweating slightly", "signs": "消瘦 / 颧红 / 盗汗虚弱"},
+
+        # --- 循环系统 ---
+        "慢性心力衰竭": {"prompt": "sitting up leaning forward, swollen lower legs visible, labored breathing, tired", "signs": "端坐位 / 下肢浮肿 / 气喘"},
+        "急性左心衰竭": {"prompt": "extreme respiratory distress, coughing, very anxious, pale and sweaty", "signs": "极度呼吸困难 / 大汗 / 极度烦躁"},
+        "原发性高血压": {"prompt": "rubbing back of the neck or temples, flushed face, slight dizziness expression", "signs": "面色潮红 / 揉捏后颈 / 略显头晕"},
+        "稳定型心绞痛": {"prompt": "clutching chest with one hand, grimacing slightly, resting", "signs": "按压胸前区 / 痛苦面容 / 休息状"},
+        "急性心肌梗死 STEMI": {"prompt": "severe crushing chest pain, holding chest tightly, pale skin, heavy sweating, terrified look", "signs": "濒死感 / 极度痛苦 / 苍白大汗"},
+        "心房颤动": {"prompt": "hand on chest feeling heartbeat, slightly anxious, pale", "signs": "手捂心口 / 心悸不适 / 略显焦虑"},
+        "感染性心内膜炎": {"prompt": "feverish, pale, small red spots on skin (petechiae) visible", "signs": "发热面容 / 苍白 / 皮肤可见瘀点"},
+        "急性心包炎": {"prompt": "leaning forward to relieve pain, clutching chest, pained expression", "signs": "前倾坐位 / 表情痛苦 / 捂胸"},
+
+        # --- 消化系统 ---
+        "胃食管反流病 GERD": {"prompt": "touching lower chest/upper abdomen, slightly uncomfortable expression, heartburn", "signs": "手抚胸骨后 / 皱眉 / 反酸不适"},
+        "消化性溃疡": {"prompt": "pressing upper abdomen (epigastric area), dull pain expression", "signs": "按压上腹部 / 痛苦面容"},
+        "肝硬化失代偿期": {"prompt": "jaundiced (yellow) skin and eyes, distended abdomen (ascites), very thin limbs", "signs": "黄疸 / 腹部膨隆 / 面色晦暗"},
+        "肝性脑病": {"prompt": "confused, lethargic, slight tremors in hands, yellow skin", "signs": "神志恍惚 / 黄疸 / 扑翼样震颤"},
+        "上消化道出血": {"prompt": "extremely pale, very weak, dizzy, lying flat", "signs": "面色苍白 / 极度虚弱 / 头晕"},
+        "溃疡性结肠炎": {"prompt": "holding lower abdomen, pained expression, pale, tired", "signs": "捂下腹部 / 虚弱 / 痛苦面容"},
+        "急性胰腺炎": {"prompt": "severe abdominal pain, bending forward, holding upper abdomen, sweating", "signs": "剧烈腹痛 / 弯腰抱腹 / 大汗"},
+        "结核性腹膜炎": {"prompt": "thin, holding abdomen, slight feverish look, tired", "signs": "消瘦 / 腹痛不适 / 低热面容"},
+
+        # --- 外科 急腹症 ---
+        "急性阑尾炎": {"prompt": "curled up, holding lower right abdomen, grimacing in pain", "signs": "捂右下腹 / 卷曲体位 / 痛苦面容"},
+        "急性胆囊炎": {"prompt": "holding upper right abdomen, pain taking a deep breath, sweating", "signs": "捂右上腹 / 不敢深呼吸 / 痛苦大汗"},
+        "急性化脓性胆管炎": {"prompt": "jaundiced (yellow) skin, severe abdominal pain, high fever flush, shivering", "signs": "黄疸 / 寒战高热 / 剧烈腹痛"},
+        "胃十二指肠溃疡穿孔": {"prompt": "lying perfectly still, intense severe abdominal pain, pale, sweating", "signs": "强迫仰卧位 / 极度痛苦 / 苍白大汗"},
+        "肠梗阻": {"prompt": "distended abdomen, vomiting or feeling nauseous, severe crampy pain", "signs": "腹部膨隆 / 恶心呕吐状 / 阵发性痛苦"},
+        "腹股沟斜疝嵌顿": {"prompt": "holding groin area, severe pain, sweating, anxious", "signs": "捂住腹股沟 / 剧烈疼痛 / 大汗"},
+    }
+
+    current_feature = disease_features.get(disease_name, {
+        "prompt": "neutral expression, slightly tired, resting in hospital bed",
+        "signs": "体征平稳 / 略显疲惫 / 痛苦面容"
+    })
+
+    final_prompt = f"A {age}-year-old Chinese {gender_en} patient, {current_feature['prompt']}, wearing hospital gown, professional photorealistic medical portrait, 8k resolution, cinematic lighting."
+
+    # --- 调用硅基流动 API ---
+    try:
+        silicon_key = st.secrets["SILICON_FLOW_API_KEY"]
+        url = "https://api.siliconflow.cn/v1/images/generations"
+
+        payload = {
+            "model": "Kwai-Kolors/Kolors",  # ✅ 快手可图全名：极度便宜/免费，画质惊艳
+            "prompt": final_prompt,
+            "image_size": "1024x1024",
+            "batch_size": 1,
+            "seed": random.randint(1, 9999999)
+        }
+        headers = {
+            "Authorization": f"Bearer {silicon_key}",
+            "Content-Type": "application/json"
+        }
+
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        response.raise_for_status()
+
+        # 成功获取图片
+        image_url = response.json()['images'][0]['url']
+
+    except Exception as e:
+        # 恢复成最干净的容错捕获机制
+        print(f"⚠️ 图像生成失败，启用占位图: {e}")
+        image_url = f"https://dummyimage.com/400x500/cccccc/000000&text=Patient+Sim"
+
+    return {
+        "age": age,
+        "gender": gender_cn,
+        "signs": current_feature["signs"],
+        "image_url": image_url
+    }
 
 # ================= 3. 病例生成模块 (Generator) =================
 
@@ -391,6 +482,48 @@ def run_evaluation(chat_history, user_diagnosis,correct_disease):
 
 def main():
     st.title("🏥 医循：基于AI与医学循证逻辑的临床沟通智能训练系统")
+
+    if "exam_history" not in st.session_state:
+        st.session_state.exam_history = []
+
+    # ================= 新增：侧边栏历史记录与导出 =================
+    with st.sidebar:
+        st.header("📜 问诊训练档案")
+
+        if not st.session_state.exam_history:
+            st.info("尚未完成任何训练记录。")
+        else:
+            # --- 导出功能 ---
+            # 拼接所有历史记录为一段长文本
+            export_text = "医循系统 - 临床沟通训练导出报告\n" + "=" * 40 + "\n"
+            for i, rec in enumerate(st.session_state.exam_history):
+                export_text += f"\n【记录 {i + 1}】 时间: {rec['time']}\n"
+                export_text += f"标准诊断: {rec['disease']} | 您的诊断: {rec['user_diag']}\n"
+                export_text += f"报告详情:\n{rec['report']}\n"
+                export_text += "-" * 40 + "\n"
+
+            st.download_button(
+                label="📥 导出所有历史报告 (TXT)",
+                data=export_text,
+                file_name=f"问诊训练报告_{time.strftime('%Y%m%d_%H%M')}.txt",
+                mime="text/plain",
+                use_container_width=True
+            )
+
+            st.divider()
+
+            # --- 历史列表查看 ---
+            st.subheader("历史记录")
+            # 使用 reversed 让最新的记录排在最前面
+            for i, rec in enumerate(reversed(st.session_state.exam_history)):
+                idx = len(st.session_state.exam_history) - i
+                with st.expander(f"第 {idx} 次: {rec['disease']}"):
+                    st.caption(f"🕒 {rec['time']}")
+                    st.markdown(f"**您的诊断**: {rec['user_diag']}")
+                    st.markdown("---")
+                    st.markdown(rec['report'])
+    # =========================================================
+
     # 1. 准备 RAG
     with st.spinner("正在连接教材知识库..."):
         build_or_load_knowledge_base()
@@ -402,11 +535,18 @@ def main():
         st.session_state.secret_case = secret_case
         st.session_state.correct_disease = correct_disease
 
+        # 调用引擎，生成患者图片和档案 (增加spinner提示用户等待)
+        with st.spinner("✨ 正在生成标准化病人(SP)全息视觉档案，请稍候(约5-10秒)..."):
+            st.session_state.patient_profile = generate_patient_profile(correct_disease)
+
         # 3. 设定病人角色
         patient_system_prompt = f"""
         你现在是一名正在参加国家执业医师客观结构化临床考试（OSCE）的标准化病人（SP）。
         这是你的真实病历设定：
         {secret_case}
+        
+        【附加人设】
+        你的年龄是 {st.session_state.patient_profile['age']} 岁，性别是 {st.session_state.patient_profile['gender']}。请在对话中严格符合该身份的语气，如果医生问起基本信息，请按此回答。
 
         【表演规则】
         1. **被动触发**：不能像背书一样主动把病情说出。只有当医生具体问到了某一个维度（如诱因、伴随症状、二便情况、既往史），你才回答那一项的具体信息。
@@ -430,66 +570,94 @@ def main():
     # ================= 状态一：问诊聊天阶段 =================
     if st.session_state.status == "chatting":
 
-        st.info("💡 **问诊提示**：请按照《国家执业医师病史采集标准》进行全面问诊。")
-
-        if st.button("📝 结束问诊，我要交卷", type="primary", use_container_width=True):
-            st.session_state.status = "diagnosing"
-            st.rerun()
+        col_header1, col_header2 = st.columns([4, 1])
+        with col_header1:
+            st.info("💡 **问诊提示**：请按照《国家执业医师病史采集标准》进行全面问诊。")
+        with col_header2:
+            if st.button("📝 结束问诊,我要交卷", type="primary", use_container_width=True):
+                st.session_state.status = "diagnosing"
+                st.rerun()
 
         st.divider()
 
-        # 显示历史聊天记录 (隐藏系统 prompt)
-        for msg in st.session_state.messages:
-            if msg["role"] != "system":
-                # 设定头像
-                avatar = "👨‍⚕️" if msg["role"] == "user" else "👤"
-                with st.chat_message(msg["role"], avatar=avatar):
-                    st.markdown(msg["content"])
+        left_col, right_col = st.columns([1, 2.2])
 
-        # 底部输入框 (取代原本的 input)
-        col1, col2 = st.columns([1, 6])
+        # --- 左侧栏：患者视觉档案 ---
+        with left_col:
+            profile = st.session_state.patient_profile
 
-        with col1:
-            # 这是一个原生的录音按钮，按住说话，松开后自动转为文字
-            spoken_text = speech_to_text(
-                language='zh',  # 设置语言为中文
-                start_prompt="🎤 点击说话",
-                stop_prompt="🛑 停止录音",
-                just_once=True,
-                key='STT'
-            )
+            st.markdown(f"""
+                        <div style="
+                            background: linear-gradient(90deg, #4A90E2 0%, #35C3A5 100%);
+                            padding: 8px 15px;
+                            border-radius: 8px 8px 0 0;
+                            color: white;
+                            font-weight: bold;
+                            display: flex;
+                            justify-content: space-between;
+                        ">
+                            <span>👤 患者档案</span>
+                            <span>{profile['age']}岁 &nbsp; {profile['gender']}</span>
+                        </div>
+                    """, unsafe_allow_html=True)
 
-        with col2:
-            # 保留原有的文本输入框作为备用
-            written_text = st.chat_input("👨‍⚕️ 按左侧麦克风说话，或在此打字...")
+            st.image(profile['image_url'], use_container_width="always")
 
-        # 检查是否有输入（语音转成的文字，或者是手动打的字）
-        user_input = spoken_text or written_text
+            st.markdown(f"""
+                        <div style="
+                            background-color: #6c757d;
+                            padding: 8px 15px;
+                            border-radius: 0 0 8px 8px;
+                            color: white;
+                            font-size: 14px;
+                            text-align: center;
+                        ">
+                            ⓘ 当前体征：{profile['signs']}
+                        </div>
+                    """, unsafe_allow_html=True)
 
-        if user_input:
-            # 1. 显示并记录医生的话
-            with st.chat_message("user", avatar="👨‍⚕️"):
-                st.markdown(user_input)
-            st.session_state.messages.append({"role": "user", "content": user_input})
-            st.session_state.history_for_review.append({"role": "user", "content": user_input})
+        # --- 右侧栏：聊天互动区 ---
+        with right_col:
+            # 使用固定高度的容器装聊天记录
+            chat_container = st.container(height=520, border=True)
+            with chat_container:
+                for msg in st.session_state.messages:
+                    if msg["role"] != "system":
+                        avatar = "👨‍⚕️" if msg["role"] == "user" else "👤"
+                        with st.chat_message(msg["role"], avatar=avatar):
+                            st.markdown(msg["content"])
 
-            # 2. 调用 AI 并流式显示病人的话
-            with st.chat_message("assistant", avatar="👤"):
-                stream = client.chat.completions.create(
-                    model=MODEL_NAME,
-                    messages=st.session_state.messages,
-                    stream=True
-                )
-                # st.write_stream 会自动处理打字机效果并回传完整字符串
-                full_reply = st.write_stream(stream)
+            # 底部输入区 (紧贴着聊天框下方)
+            input_col1, input_col2 = st.columns([1, 5])
+            with input_col1:
+                spoken_text = speech_to_text(
+                        language='zh',
+                        start_prompt="🎤 点击说话",
+                        stop_prompt="🛑 停止录音",
+                        just_once=True,
+                        key='STT'
+                    )
+            with input_col2:
+                written_text = st.chat_input("👨‍⚕️ 按左侧麦克风说话，或在此打字...")
 
-            # 3. 记录病人的话
-            st.session_state.messages.append({"role": "assistant", "content": full_reply})
-            st.session_state.history_for_review.append({"role": "assistant", "content": full_reply})
+            user_input = spoken_text or written_text
 
-            # 强制刷新页面以更新 UI
-            st.rerun()
+            if user_input:
+                st.session_state.messages.append({"role": "user", "content": user_input})
+                st.session_state.history_for_review.append({"role": "user", "content": user_input})
 
+                # 防止重绘闪烁，直接在此处获取回复并 rerun
+                with st.spinner("患者正在思考..."):
+                    response = client.chat.completions.create(
+                        model=MODEL_NAME,
+                        messages=st.session_state.messages,
+                        stream=False  # 在复杂布局中使用 False 更稳定
+                    )
+                    full_reply = response.choices[0].message.content
+
+                st.session_state.messages.append({"role": "assistant", "content": full_reply})
+                st.session_state.history_for_review.append({"role": "assistant", "content": full_reply})
+                st.rerun()
 
     # ================= 状态二：填写诊断阶段 =================
     elif st.session_state.status == "diagnosing":
@@ -501,9 +669,12 @@ def main():
             submitted = st.form_submit_button("提交诊断并生成报告")
 
             if submitted:
-                st.session_state.user_final_diagnosis = diagnosis_input if diagnosis_input else "未提交(诊断缺失)"
-                st.session_state.status = "evaluating"
-                st.rerun()
+                if not diagnosis_input.strip():
+                    st.warning("⚠️ 医生，请填写您的初步诊断结果后再交卷！")
+                else:
+                    st.session_state.user_final_diagnosis = diagnosis_input.strip()
+                    st.session_state.status = "evaluating"
+                    st.rerun()
 
         # ================= 状态三：生成评估报告阶段 =================
     elif st.session_state.status == "evaluating":
@@ -519,18 +690,32 @@ def main():
                     st.session_state.user_final_diagnosis,
                     st.session_state.correct_disease  # 传入标准答案
                 )
-                # st.write_stream 会返回完整的文字结果，我们把它存进记忆里
-                st.session_state.final_report = st.write_stream(report_stream)
+                full_text = st.write_stream(report_stream)
+                st.session_state.final_report = full_text
+
+                new_record = {
+                    "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "disease": st.session_state.correct_disease,
+                    "user_diag": st.session_state.user_final_diagnosis,
+                    "report": st.session_state.final_report
+                }
+                st.session_state.exam_history.append(new_record)
+
             else:
             # 如果已经存过了，直接打印文字，不再调用 AI 重新生成
                 st.markdown(st.session_state.final_report)
 
         # 【优化 2：使用 on_click】定义一个重置函数
         def reset_exam():
-            st.session_state.clear()  # 清空所有记忆
+            # 1. 备份历史记录
+            current_history = st.session_state.exam_history
 
-        # 将重置函数绑定到按钮的 on_click 事件上
-        # 这样点击按钮的瞬间就会先清空记忆，不会再去跑上面的渲染逻辑
+            # 2. 清空所有状态（包括问诊记录、当前报告、图片等）
+            st.session_state.clear()
+
+            # 3. 把历史记录还原回去
+            st.session_state.exam_history = current_history
+
         st.button("🔄 抽取新病例重新考试", on_click=reset_exam)
 
 if __name__ == "__main__":
