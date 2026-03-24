@@ -154,7 +154,7 @@ def generate_patient_profile(disease_name):
         "signs": "体征平稳 / 略显疲惫 / 痛苦面容"
     })
 
-    final_prompt = f"一张{age}岁中国{gender_cn}的高清真实人物肖像摄影，人物当前状态：{current_feature['signs']}。穿着日常舒适的休闲服，背景是干净的纯色室内，表情自然不夸张，电影级真实光影，8k分辨率，极具真实感。"
+    final_prompt = f"一张{age}岁中国{gender_cn}患者的高清真实肖像摄影，人物当前状态：{current_feature['signs']}。穿着日常休闲服，背景是干净的纯色室内，表情自然不夸张，电影级光影，8k分辨率。"
 
     # --- 调用硅基流动 API ---
     try:
@@ -162,18 +162,17 @@ def generate_patient_profile(disease_name):
         url = "https://api.siliconflow.cn/v1/images/generations"
 
         payload = {
-            "model": "Kwai-Kolors/Kolors",  # ✅ 快手可图全名：极度便宜/免费，画质惊艳
+            "model": "Kwai-Kolors/Kolors",
             "prompt": final_prompt,
-            "image_size": "1024x1024",
-            "batch_size": 1,
-            "seed": random.randint(1, 9999999)
+            "image_size": "1024x1024"
         }
+
         headers = {
             "Authorization": f"Bearer {silicon_key}",
             "Content-Type": "application/json"
         }
 
-        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        response = requests.post(url, json=payload, headers=headers, timeout=60)
         response.raise_for_status()
 
         # 成功获取图片
