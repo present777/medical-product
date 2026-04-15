@@ -6,3 +6,4 @@ langchain-chroma
 PyMuPDF
 streamlit-mic-recorder
 sentence-transformers
+protobuf<=4.25.3
