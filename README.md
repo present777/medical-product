@@ -20,6 +20,26 @@ The platform supports a complete workflow including:
 
 ---
 
+# Demo
+
+## Home
+
+![](images/home.jpg)
+
+---
+
+## Clinical Interview
+
+![](images/interview.jpg)
+
+---
+
+## Evaluation Report
+
+![](images/report.jpg)
+
+---
+
 # Features
 
 ##  AI Standardized Patient Simulation
