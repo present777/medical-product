@@ -1,71 +1,196 @@
-# AI Clinical OSCE Simulator
+# AI Clinical Communication Training System
 
-A clinical communication training engine powered by Large Language Models, RAG, and FSM architecture.
-
-## Core Features
-*   **RAG-Driven Evidence Base**: Integrates `ChromaDB` and HuggingFace to vectorize medical textbooks, avoiding LLM hallucinations via strict evidence-based citations.
-*   **Dynamic SP Generation**: Utilizes prompt engineering with random seeds to dynamically synthesize standardized patient (SP) profiles for over 30 core diseases.
-*   **FSM Lifecycle Management**: Implements a strict Finite State Machine using Streamlit's `session_state` to strictly separate chatting, diagnosing, and evaluating phases.
-*   **Multi-modal Interaction**: Supports real-time voice input (`streamlit-mic-recorder`) and generates high-fidelity patient avatars via the Kolors vision model.
+> An AI-powered clinical communication training platform based on Large Language Models (LLMs) and Retrieval-Augmented Generation (RAG), designed to simulate standardized patients (SPs) and provide evidence-based clinical interview assessment.
 
 ---
 
-## Quick Start
+# Overview
 
-1. Clone the repository:
-   ```bash
-   git clone [https://github.com/present777/medical-product.git](https://github.com/present777/medical-product.git)
-   cd medical-product
+Clinical communication is one of the most important skills for medical students and junior healthcare professionals. However, opportunities to practice with standardized patients (SPs) are often limited due to the high cost of teaching resources and instructor availability.
 
-```
+This project explores the application of Large Language Models (LLMs) in clinical communication training. By integrating Retrieval-Augmented Generation (RAG) with authoritative medical textbooks, the system provides realistic AI standardized patients together with evidence-based evaluation, enabling repeated practice and continuous improvement of clinical interviewing skills.
 
-2. Install dependencies:
-```bash
-pip install streamlit openai langchain-community langchain-huggingface langchain-chroma pymupdf streamlit-mic-recorder requests
+The platform supports a complete workflow including:
 
-```
-
-
-3. Configure API Keys:
-Create a `.streamlit/secrets.toml` file in the root directory and add your keys:
-```toml
-DEEPSEEK_API_KEY = "your_deepseek_api_key"
-SILICON_FLOW_API_KEY = "your_siliconflow_api_key"
-
-```
-
-
-4. Prepare Knowledge Base:
-Create a `medical_books` folder in the root directory and place your medical PDF textbooks inside.
-5. Run the engine:
-```bash
-streamlit run web+voice.py
-
-```
-
-
+- AI Standardized Patient Generation
+- Clinical Interview
+- Diagnosis Submission
+- Intelligent Evaluation
+- Personalized Feedback Report
 
 ---
 
-## Future Work
+# Features
 
-* [ ] Expand the knowledge base with more specialized medical textbooks.
-* [ ] Optimize LLM inference latency for smoother real-time voice conversations.
-* [ ] Add support for tracking and visualizing user progress over multiple training sessions.
+##  AI Standardized Patient Simulation
+
+- Dynamically generates diverse clinical cases.
+- Supports natural multi-turn conversations.
+- Simulates realistic patient behaviors instead of scripted dialogue.
 
 ---
 
-## 中文说明
+##  Retrieval-Augmented Generation (RAG)
 
-本项目是一个专为医学初学者打造的临床沟通智能训练引擎，基于大语言模型、RAG 技术与状态机架构开发。
+- Retrieves knowledge from authoritative medical textbooks.
+- Reduces hallucinations of Large Language Models.
+- Grounds patient responses and evaluations with reliable medical evidence.
 
-### 核心亮点
+---
 
-* **RAG 循证检索**：集成 ChromaDB 与 HuggingFace 将医学教材向量化，通过强制引用本地文献消除大模型幻觉，实现基于医学循证的客观评分。
-* **动态 SP 生成**：利用提示词工程与随机因子，动态生成覆盖 30 余种核心急腹症与内科疾病的标准化病人（SP）档案。
-* **状态机生命周期**：使用 Streamlit 状态机严格隔离“问诊、诊断、评估”三个阶段的单向流转，防止数据泄露与模型“脑补”。
-* **多模态交互**：集成语音识别组件支持真实场景模拟，并调用硅基流动 API（Kolors）实时生成高度还原的患者体征图像。
+##  Intelligent Evaluation Framework
 
+The evaluation framework assesses users from three perspectives:
+
+- Diagnostic Accuracy
+- Completeness of Information Collection
+- Clinical Communication Quality
+
+The system automatically generates personalized feedback after each interview.
+
+---
+
+##  Evidence-based Feedback
+
+Instead of only providing scores, the evaluation report cites supporting knowledge retrieved from the medical knowledge base, improving transparency and interpretability.
+
+---
+
+##  Voice Interaction
+
+Supports speech input to simulate real-world doctor-patient communication and improve user experience.
+
+---
+
+##  Continuous Practice
+
+The system generates different standardized patient cases, allowing users to repeatedly practice clinical interviews and gradually improve diagnostic thinking.
+
+---
+
+# System Architecture
+
+```text
+                     +----------------------+
+                     |        User          |
+                     +----------------------+
+                                |
+                                v
+                    Clinical Interview
+                                |
+                                v
+                     +------------------+
+                     | Prompt Templates |
+                     +------------------+
+                                |
+                +---------------+---------------+
+                |                               |
+                v                               v
+      Medical Knowledge Base              Large Language Model
+      (medical_knowledge_db)                    (LLM)
+                |                               |
+                +---------------+---------------+
+                                |
+                                v
+                 AI Standardized Patient (SP)
+                                |
+                                v
+                   Diagnosis Submission
+                                |
+                                v
+                   Evaluation Framework
+                                |
+                                v
+                  Personalized Feedback
 ```
 
+---
+
+# Workflow
+
+```text
+Generate Clinical Case
+          │
+          ▼
+Clinical Interview
+          │
+          ▼
+Submit Diagnosis
+          │
+          ▼
+Retrieve Medical Knowledge
+          │
+          ▼
+Evaluate Interview
+          │
+          ▼
+Generate Feedback Report
 ```
+
+---
+
+# Project Structure
+
+```text
+.
+├── .devcontainer/              # Development environment configuration
+├── medical_knowledge_db/       # Vector database generated from medical textbooks
+├── web+voice.py                # Main application entry
+├── requirements.txt            # Project dependencies
+├── .gitignore
+└── README.md
+```
+
+---
+
+# Technology Stack
+
+| Category | Technology |
+|----------|------------|
+| Programming Language | Python |
+| Web Framework | Streamlit |
+| LLM | DeepSeek API |
+| Prompt Design | Custom Prompt Templates |
+| RAG Framework | LangChain |
+| Vector Database | ChromaDB |
+| Embedding Model | DeepSeek Embeddings |
+| Speech Input | streamlit-mic-recorder |
+
+---
+
+# My Contribution
+
+As a member of the project team, my primary contributions included:
+
+- Designed and iteratively refined prompt strategies for AI standardized patient generation.
+- Participated in designing and improving the evaluation framework through repeated testing and feedback.
+- Conducted functional testing, identified failure cases, and proposed improvements to interaction logic and user experience.
+- Assisted in refining the overall workflow of the system from clinical interview to evaluation.
+
+---
+
+# Future Work
+
+Potential future improvements include:
+
+- Expanding the medical knowledge base with additional authoritative textbooks.
+- Supporting more medical specialties and disease categories.
+- Introducing multimodal assessment using facial expressions and speech analysis.
+- Enhancing OSCE-style clinical examination simulation.
+- Deploying the platform as an online web service.
+
+---
+
+# Acknowledgements
+
+This project was completed through multidisciplinary collaboration between students from Mathematics and Nursing.
+
+It explores the application of Large Language Models (LLMs) and Retrieval-Augmented Generation (RAG) in clinical communication training and medical education.
+
+---
+
+# Disclaimer
+
+This project is intended **for educational and research purposes only**.
+
+It is **not** a medical diagnosis system and should **not** be used for clinical decision-making.
